@@ -91,7 +91,7 @@ else
 	<fieldset style="display: inline;">
 		<legend>Login</legend>
 			<form action="index.php" method="post" autocomplete="off">
-				<input type="text" name="email" placeholder="Username" autofocus="" pattern="[a-zA-Z0-9-]+" title="Only letters and numbers are allowed." required="">
+				<input type="email" name="email" placeholder="Email" autofocus="" required="">
 				<input type="password" name="password" placeholder="Password" required="">
 				<input type="hidden" name="action" value="login" required="">
 				<input type="submit">
