@@ -5,8 +5,7 @@ $apikey =  getenv('XAPIKEY');
 $context = stream_context_create([
     "http" => [
         "method" => "GET",
-        "header" => "Accept-languange: ID\r\n" .
-        "X-API-Key: $apikey\r\n" .
+        "header" => "X-API-Key: $apikey\r\n" .
         "Cookie: foo=$auth\r\n"
     ]
 ]);
