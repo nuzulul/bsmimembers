@@ -13,6 +13,5 @@ $context = stream_context_create([
 
 $url = "https://members.bsmijatim.org/dev/test/getallheader.php";
 
-$file = file_get_contents($url. '?cache='. $now, false, $context);
-var_dump($file);
+$file = file_get_contents($url. '?cache='. $now, false, $context);var_dump($file);
 ?>

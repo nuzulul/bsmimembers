@@ -1,104 +1,186 @@
 <?php
+$maxlifetime = 600;
+$secure = false; // if you only want to receive the cookie over HTTPS
+$httponly = true; // prevent JavaScript access to session cookie
+$samesite = 'strict'; //none lax strict
 
-function generate_jwt($headers, $payload, $secret = 'secret') {
-	$headers_encoded = base64url_encode(json_encode($headers));
-	
-	$payload_encoded = base64url_encode(json_encode($payload));
-	
-	$signature = hash_hmac('SHA256', "$headers_encoded.$payload_encoded", $secret, true);
-	$signature_encoded = base64url_encode($signature);
-	
-	$jwt = "$headers_encoded.$payload_encoded.$signature_encoded";
-	
-	return $jwt;
+if(PHP_VERSION_ID < 70300) {
+    session_set_cookie_params($maxlifetime, '/; samesite='.$samesite, $_SERVER['HTTP_HOST'], $secure, $httponly);
+} else {
+    session_set_cookie_params([
+        'lifetime' => $maxlifetime,
+        'path' => '/',
+        'domain' => $_SERVER['HTTP_HOST'],
+        'secure' => $secure,
+        'httponly' => $httponly,
+        'samesite' => $samesite
+    ]);
+}
+    
+session_start();
+
+function dbapi($method,$apiurl,$payload = ""){
+  $now = date("Y-m-d-H-i-s");
+  $apikey =  getenv('XAPIKEY');
+  if ($method === "read"){
+    $context = stream_context_create([
+      "http" => [
+          "method" => "GET",
+          "header" => "X-API-Key: $apikey\r\n"
+      ]
+    ]);
+  }
+  if ($method === "create"){
+    $context = stream_context_create([
+      "http" => [
+          "method" => "POST",
+          "header" => "Content-Type: application/json; charset=utf-8\r\n".
+            "X-API-Key: $apikey\r\n",
+          'content' => $payload,
+          'timeout' => 60
+      ]
+    ]);
+  }  
+  //$dburl='https://bsmi.sourceforge.io/phpcrudapi/api.php'.$apiurl.'?cache='. $now;
+  $dburl='https://bsmi.sourceforge.io/phpcrudapi/api.php'.$apiurl;
+  $result = file_get_contents($dburl, false, $context);
+  return $result;
 }
 
-function is_jwt_valid($jwt, $secret = 'secret') {
-	// split the jwt
-	$tokenParts = explode('.', $jwt);
-	$header = base64_decode($tokenParts[0]);
-	$payload = base64_decode($tokenParts[1]);
-	$signature_provided = $tokenParts[2];
-
-	// check the expiration time - note this will cause an error if there is no 'exp' claim in the jwt
-	$expiration = json_decode($payload)->exp;
-	$is_token_expired = ($expiration - time()) < 0;
-
-	// build a signature based on the header and payload using the secret
-	$base64_url_header = base64url_encode($header);
-	$base64_url_payload = base64url_encode($payload);
-	$signature = hash_hmac('SHA256', $base64_url_header . "." . $base64_url_payload, $secret, true);
-	$base64_url_signature = base64url_encode($signature);
-
-	// verify it matches the signature provided in the jwt
-	$is_signature_valid = ($base64_url_signature === $signature_provided);
-	
-	if ($is_token_expired || !$is_signature_valid) {
-		return FALSE;
-	} else {
-		return TRUE;
-	}
-}
-
-function base64url_encode($data) {
-    return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
-}
-
-function get_authorization_header(){
-	$headers = null;
-	
-	if (isset($_SERVER['Authorization'])) {
-		$headers = trim($_SERVER["Authorization"]);
-	} else if (isset($_SERVER['HTTP_AUTHORIZATION'])) { //Nginx or fast CGI
-		$headers = trim($_SERVER["HTTP_AUTHORIZATION"]);
-	} else if (function_exists('apache_request_headers')) {
-		$requestHeaders = apache_request_headers();
-		// Server-side fix for bug in old Android versions (a nice side-effect of this fix means we don't care about capitalization for Authorization)
-		$requestHeaders = array_combine(array_map('ucwords', array_keys($requestHeaders)), array_values($requestHeaders));
-		//print_r($requestHeaders);
-		if (isset($requestHeaders['Authorization'])) {
-			$headers = trim($requestHeaders['Authorization']);
-		}
-	}
-	
-	return $headers;
-}
-
-function get_bearer_token() {
-    $headers = get_authorization_header();
-	
-    // HEADER: Get the access token from the header
-    if (!empty($headers)) {
-        if (preg_match('/Bearer\s(\S+)/', $headers, $matches)) {
-            return $matches[1];
-        }
-    }
-    return null;
-}
 
 if(isset($_POST['action'])){
   $action = isset($_POST['action'])?$_POST['action']:false;
-  echo $action;
+  if ($action === "login"){
+  
+    //grab the posted email and password
+    $post_email = $_POST['email'];
+    $post_password = $_POST['password'];
+    
+    //secure the email and password
+    $post_email = stripslashes($post_email);
+    $post_password = stripslashes($post_password);
+    
+    //checks if the username or password fields are empty
+    if (strlen($post_email) === 0) {
+        echo "<p>The email field cannot be empty!</p>";
+        echo "<a href='index.php'>Return</a>";
+    }
+    elseif (strlen($post_password) === 0) {
+        echo "<p>The password field cannot be empty!</p>";
+        echo "<a href='index.php'>Return</a>";
+    }
+    else {
+      $apiurl = "/records/users?filter=email,eq,".$post_email;
+      $data = dbapi("read",$apiurl);$data = json_decode(dbapi("read",$apiurl));
+      //var_dump($data->records);
+      if(empty($data->records)) {
+        echo "<p>Invalid email or password.</p>";
+      }
+      else
+      {
+        $password = $data->records[0]->password;
+        if (!password_verify($post_password, $password)) {
+          echo "<p>Invalid email or password.</p>";
+        }
+        else
+        {
+          //if (password_verify($post_password, $password)) {
+          $_SESSION['email'] = $post_email;
+          $_SESSION['loggedin'] = true;  
+        }
+      
+      }
+    }    
+  }
+  if ($action === "register"){
+    //grab the posted email and password
+    $post_email = $_POST['email'];
+    $post_password = $_POST['password'];
+    
+    //secure the email and password
+    $post_email = stripslashes($post_email);
+    $post_password = stripslashes($post_password);
+    
+    //checks if the username or password fields are empty
+    if (strlen($post_email) === 0) {
+        echo "<p>The email field cannot be empty!</p>";
+        echo "<a href='index.php'>Return</a>";
+    }
+    elseif (strlen($post_password) === 0) {
+        echo "<p>The password field cannot be empty!</p>";
+        echo "<a href='index.php'>Return</a>";
+    }
+    else {
+    
+      $apiurl = "/records/users?filter=email,eq,".$post_email;
+      $data = dbapi("read",$apiurl);$data = json_decode(dbapi("read",$apiurl));
+      if(!empty($data->records)) {
+        echo "<p>Error! Email already registered.</p>";
+      }
+      else
+      {
+        $apiurl = "/records/users";
+        $fields = array(
+            'email' => $post_email,
+            'password' => password_hash($post_password, PASSWORD_DEFAULT),
+            'username' => date("YmdHis"),
+            'name' => "",
+        );
+        $payload = json_encode($fields);
+        $data = dbapi("create",$apiurl,$payload);
+        if (strlen($data) === 0){echo "<p>Register failed.</p>";}
+        else{
+          //echo "<p>Register success. Please login.</p>";  
+          $_SESSION['email'] = $post_email;
+          $_SESSION['loggedin'] = true;          
+        }
+      }    
+    }  
+  }
+  if ($action === "logout"){
+    $_SESSION['loggedin'] == false;
+    session_destroy();
+    echo "You are logged out.<br>";
+    header('Location: index.php');
+    exit;
+  }
 }
 
-session_start();
+
 if (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] == true) {
-  echo "BSMI MEMBERS";
+  echo 'BSMI MEMBERS';
+  echo '<form action="index.php" method="post" autocomplete="off"><input type="hidden" name="action" value="logout" required=""><input type="submit" value="Logout"></form>';
 }
 else
 {
 ?>
-	<fieldset style="display: inline;">
-		<legend>Login</legend>
-			<form action="index.php" method="post" autocomplete="off">
-				<input type="email" name="email" placeholder="Email" autofocus="" required="">
-				<input type="password" name="password" placeholder="Password" required="">
-				<input type="hidden" name="action" value="login" required="">
-				<input type="submit">
-			</form>
-	</fieldset>
-	<p>Not registred?</p>
-	<a href="index.php">Register</a>
+
+<fieldset id="loginform" style="display: inline;">
+  <legend>Login</legend>
+    <form action="index.php" method="post" autocomplete="off">
+      <input type="email" name="email" placeholder="Email" autofocus="" required=""></br>
+      <input type="password" name="password" placeholder="Password" required=""></br>
+      <input type="hidden" name="action" value="login" required="">
+      <input type="submit">
+    </form>
+    <p>Not registred?</p>
+    <a id="registerbutton" href="javascript:">Register</a>			
+</fieldset>
+<fieldset id="registerform" style="display: none;">
+  <legend>Register</legend>
+    <form action="index.php" method="post" autocomplete="off">
+      <input type="email" name="email" placeholder="Email" autofocus="" required=""></br>
+      <input type="password" name="password" placeholder="Password" required=""></br>
+      <input type="hidden" name="action" value="register" required="">
+      <input type="submit">
+    </form>
+    <p>Already registred?</p>
+    <a id="loginbutton" href="javascript:">Login</a>	
+</fieldset>	
+<script>
+document.getElementById("registerbutton").onclick = function() { document.getElementById("loginform").style.display = "none";document.getElementById("registerform").style.display = "inline"; };
+document.getElementById("loginbutton").onclick = function() { document.getElementById("registerform").style.display = "none";document.getElementById("loginform").style.display = "inline"; };
+</script>
 <?php
 }
 ?>

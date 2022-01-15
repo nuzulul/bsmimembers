@@ -10,6 +10,5 @@ $context = stream_context_create([
     ]
 ]);
 
-$file = file_get_contents('https://bsmi.sourceforge.io/phpcrudapi/api.php/records/donasi/35?cache='. $now, false, $context);
-var_dump($file);
+$file = file_get_contents('https://bsmi.sourceforge.io/phpcrudapi/api.php/records/donasi/35?cache='. $now, false, $context);var_dump($file);
 ?>
