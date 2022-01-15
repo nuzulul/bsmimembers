@@ -80,8 +80,25 @@ if(isset($_POST['action'])){
   $action = isset($_POST['action'])?$_POST['action']:false;
   echo $action;
 }
+
+session_start();
+if (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] == true) {
+  echo "BSMI MEMBERS";
+}
 else
 {
-  echo "BSMI MEMBERS";
+?>
+	<fieldset style="display: inline;">
+		<legend>Login</legend>
+			<form action="index.php" method="post" autocomplete="off">
+				<input type="text" name="email" placeholder="Username" autofocus="" pattern="[a-zA-Z0-9-]+" title="Only letters and numbers are allowed." required="">
+				<input type="password" name="password" placeholder="Password" required="">
+				<input type="hidden" name="action" value="login" required="">
+				<input type="submit">
+			</form>
+	</fieldset>
+	<p>Not registred?</p>
+	<a href="index.php">Register</a>
+<?php
 }
 ?>
