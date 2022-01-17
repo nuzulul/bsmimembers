@@ -443,33 +443,6 @@ else
 </section>
 <!-- main front -->
 
-<!-- reset form -->
-<section id="resetform" style="display: none;">
-    <form action="" method="post" autocomplete="off" class="form-signin">
-      <h1 class="h3 mb-3 font-weight-normal">Setel ulang password</h1>
-      <label for="inputEmail" class="sr-only">Alamat email</label>
-      <input type="email" id="inputEmail1" class="form-control" name="email" placeholder="Email" autofocus="" required=""></br>
-      <input type="hidden" name="action" value="reset" required="">
-      <button class="btn btn-lg btn-primary btn-block" type="submit">Reset</button>
-      <p class="mt-3"><a class="frontbutton" href="javascript:" class="text-black-50 fw-bold">Kembali</a></p>
-    </form>
-</section>
-<!-- reset form -->
-
-<!-- resetpassword form -->
-<section id="resetpassword" style="display: none;">
-    <form action="index.php" method="post" autocomplete="off" class="form-signin">
-      <h1 class="h3 mb-3 font-weight-normal">Setel ulang password</h1>
-      <label for="inputPassword" class="sr-only">Password baru</label>
-      <input type="password" id="inputPassword1" class="form-control" name="password" placeholder="Password" required=""></br>
-      <input type="hidden" name="action" value="resetpassword" required="">
-      <input type="hidden" id="resetkey" name="key" value="" required="">
-      <button class="btn btn-lg btn-primary btn-block" type="submit">Reset</button>
-      <p class="mt-3"><a class="" href="index.php" class="text-black-50 fw-bold">Kembali</a></p>
-    </form>
-</section>
-<!-- reset form -->
-
 <!-- login form -->
 <section id="loginform" style="display: none;">
     <form action="" method="post" autocomplete="off" class="form-signin">
@@ -501,6 +474,33 @@ else
     </form>
 </section>	
 <!-- register form -->
+
+<!-- reset form -->
+<section id="resetform" style="display: none;">
+    <form action="" method="post" autocomplete="off" class="form-signin">
+      <h1 class="h3 mb-3 font-weight-normal">Setel ulang password</h1>
+      <label for="inputEmail" class="sr-only">Alamat email</label>
+      <input type="email" id="inputEmail3" class="form-control" name="email" placeholder="Email" autofocus="" required=""></br>
+      <input type="hidden" name="action" value="reset" required="">
+      <button class="btn btn-lg btn-primary btn-block" type="submit">Reset</button>
+      <p class="mt-3"><a class="frontbutton" href="javascript:" class="text-black-50 fw-bold">Kembali</a></p>
+    </form>
+</section>
+<!-- reset form -->
+
+<!-- resetpassword form -->
+<section id="resetpassword" style="display: none;">
+    <form action="index.php" method="post" autocomplete="off" class="form-signin">
+      <h1 class="h3 mb-3 font-weight-normal">Setel ulang password</h1>
+      <label for="inputPassword" class="sr-only">Password baru</label>
+      <input type="password" id="inputPassword3" class="form-control" name="password" placeholder="Password" required=""></br>
+      <input type="hidden" name="action" value="resetpassword" required="">
+      <input type="hidden" id="resetkey" name="key" value="" required="">
+      <button class="btn btn-lg btn-primary btn-block" type="submit">Reset</button>
+      <p class="mt-3"><a class="" href="index.php" class="text-black-50 fw-bold">Kembali</a></p>
+    </form>
+</section>
+<!-- reset form -->
 
 
 
