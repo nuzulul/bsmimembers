@@ -352,20 +352,20 @@ if(isset($_POST['action'])){
         showalert('Password tidak boleh kosong');
     }
     elseif (strlen($key) === 0) {
-        showalert('Key tidak valid');
+        showalert('Key kosong');
     }
     else 
     {
         $apiurl = "/records/reset?filter=key,eq,".$key;
-        $data = json_decode(dbapi("read",$apiurl));
+        $data = json_decode(dbapi("read",$apiurl));$data = json_decode(dbapi("read",$apiurl));
         if(empty($data->records)) {
-          showalert('Key tidak valid');
+          showalert('Key tidak ditemukan');
         }
         else
         {
           $used = $data->records[0]->used;
           if ($used !== 0) {
-            showalert('Key tidak valid');
+            showalert('Key sudah pernah digunakan');
           }
           else
           {
