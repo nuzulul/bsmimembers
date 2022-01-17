@@ -125,7 +125,9 @@ Input::$errors = false;
 ///////////////////////////////////////api///////////////////////////////////////////////////////////
 function dbapi($method,$apiurl,$payload = ""){
   $now = date("Y-m-d-H-i-s");
+  if(strpos($apiurl, "?") !== false){$apiurl = $apiurl."&".$now;}else{$apiurl = $apiurl."?".$now.mt_rand();}
   $apikey =  getenv('XAPIKEY');
+  $context = "";
   if ($method === "read"){
     $context = stream_context_create([
       "http" => [
@@ -145,9 +147,21 @@ function dbapi($method,$apiurl,$payload = ""){
       ]
     ]);
   }  
+  if ($method === "update"){
+    $context = stream_context_create([
+      "http" => [
+          "method" => "PUT",
+          "header" => "Content-Type: application/json; charset=utf-8\r\n".
+            "X-API-Key: $apikey\r\n",
+          'content' => $payload,
+          'timeout' => 60
+      ]
+    ]);
+  }   
   //$dburl='https://bsmi.sourceforge.io/phpcrudapi/api.php'.$apiurl.'?cache='. $now;
   $dburl='https://bsmi.sourceforge.io/phpcrudapi/api.php'.$apiurl;
-  $result = file_get_contents($dburl, false, $context);
+  $result = @file_get_contents($dburl, false, $context);
+  //if($result === FALSE) { showalert('Error'); }
   return $result;
 }
 ///////////////////////////////////////api///////////////////////////////////////////////////////////
@@ -157,7 +171,7 @@ function dbapi($method,$apiurl,$payload = ""){
 
 ///////////////////////////////////////message///////////////////////////////////////////////////////////
 
-function showmessage($data){
+function showalert($data){
 
 echo '
 <div class="position-relative"><div class="container position-absolute top-0 start-50 translate-middle-x">
@@ -178,7 +192,18 @@ echo '
 
 
 
-///////////////////////////////////////request///////////////////////////////////////////////////////////
+
+///////////////////////////////////////get request///////////////////////////////////////////////////////////
+if(isset($_GET['reset'])){
+  $resetkey = isset($_GET['reset'])?$_GET['reset']:false;
+}
+///////////////////////////////////////get request///////////////////////////////////////////////////////////
+
+
+
+
+
+///////////////////////////////////////post request///////////////////////////////////////////////////////////
 if(isset($_POST['action'])){
   $action = isset($_POST['action'])?$_POST['action']:false;
   if ($action === "login"){
@@ -189,28 +214,28 @@ if(isset($_POST['action'])){
     Input::check(['email', 'password'], $_POST);
     $post_email = Input::email($_POST['email']);
     $post_password = Input::str($_POST['password']);    
-    if (!$post_email){showmessage('Email tidak valid');} 
-    elseif (!$post_password){showmessage('Password tidak valid');}
+    if (!$post_email){showalert('Email tidak valid');} 
+    elseif (!$post_password){showalert('Password tidak valid');}
     
     //checks if the username or password fields are empty
     elseif (strlen($post_email) === 0) {
-        showmessage('Email tidak boleh kosong');
+        showalert('Email tidak boleh kosong');
     }
     elseif (strlen($post_password) === 0) {
-        showmessage('Password tidak boleh kosong');
+        showalert('Password tidak boleh kosong');
     }
     else {
       $apiurl = "/records/users?filter=email,eq,".$post_email;
       $data = dbapi("read",$apiurl);$data = json_decode(dbapi("read",$apiurl));
       //var_dump($data->records);
       if(empty($data->records)) {
-        showmessage('Email atau password salah');
+        showalert('Email atau password salah');
       }
       else
       {
         $password = $data->records[0]->password;
         if (!password_verify($post_password, $password)) {
-          showmessage('Email atau password salah');
+          showalert('Email atau password salah');
         }
         else
         {
@@ -228,22 +253,22 @@ if(isset($_POST['action'])){
     Input::check(['email', 'password'], $_POST);
     $post_email = Input::email($_POST['email']);
     $post_password = Input::str($_POST['password']);    
-    if (!$post_email){showmessage('Email tidak valid');} 
-    elseif (!$post_password){showmessage('Password tidak valid');}
+    if (!$post_email){showalert('Email tidak valid');} 
+    elseif (!$post_password){showalert('Password tidak valid');}
     
     //checks if the username or password fields are empty
     elseif (strlen($post_email) === 0) {
-        showmessage('Email tidak boleh kosong');
+        showalert('Email tidak boleh kosong');
     }
     elseif (strlen($post_password) === 0) {
-        showmessage('Password tidak boleh kosong');
+        showalert('Password tidak boleh kosong');
     }
     else {
     
       $apiurl = "/records/users?filter=email,eq,".$post_email;
       $data = dbapi("read",$apiurl);$data = json_decode(dbapi("read",$apiurl));
       if(!empty($data->records)) {
-        showmessage('Email sudah terdaftar');
+        showalert('Email sudah terdaftar');
       }
       else
       {
@@ -256,7 +281,7 @@ if(isset($_POST['action'])){
         );
         $payload = json_encode($fields);
         $data = dbapi("create",$apiurl,$payload);
-        if (strlen($data) === 0){showmessage('Registrasi gagal');}
+        if (strlen($data) === 0){showalert('Registrasi gagal');}
         else{
           //echo "<p>Register success. Please login.</p>";  
           $_SESSION['email'] = $post_email;
@@ -265,16 +290,126 @@ if(isset($_POST['action'])){
       }    
     }  
   }
+  if ($action === "reset"){
+    //validate
+    Input::check(['email'], $_POST);
+    $post_email = Input::email($_POST['email']);   
+    if (!$post_email){showalert('Email tidak valid');} 
+    
+    //checks if the email fields are empty
+    elseif (strlen($post_email) === 0) {
+        showalert('Email tidak boleh kosong');
+    }
+
+    else {
+    
+      $apiurl = "/records/users?filter=email,eq,".$post_email;
+      $data = dbapi("read",$apiurl);$data = json_decode(dbapi("read",$apiurl));
+      if(empty($data->records)) {
+        showalert('Email tidak terdaftar');
+      }
+      else
+      {
+        $password = $data->records[0]->password;
+        $timestamp = date("Y-m-d-H");
+        $key = hash('sha512', $post_email.$password.$timestamp);
+        
+        $apiurl = "/records/reset?filter=key,eq,".$key;
+        $data = json_decode(dbapi("read",$apiurl));
+        if(!empty($data->records)) {
+          showalert('Anda baru saja reset coba reset ulang 1 jam lagi');
+        } 
+        else
+        {      
+
+          $apiurl = "/records/reset";
+          $fields = array(
+              'email' => $post_email,
+              'key' => $key,
+              'used' => 0,
+          );
+          $payload = json_encode($fields);
+          $data = dbapi("create",$apiurl,$payload);
+          if (strlen($data) === 0){showalert('Reset gagal coba reset ulang 1 jam lagi');}
+          else{
+             $reseturl='https://members.bsmijatim.org/index.php?reset='.$key;
+             showalert('Link reset telah dikirim periksa email anda.');         
+          }
+        }
+      }
+    }
+  }
+  if ($action === "resetpassword"){
+    //validate
+    Input::check(['password','key'], $_POST);
+    $post_password = Input::str($_POST['password']);
+    $key = Input::data($_POST['key']);     
+    if (!$post_password ){showalert('Password tidak valid');} 
+    elseif (!$key ){showalert('Key tidak valid');} 
+    
+    elseif (strlen($post_password) === 0) {
+        showalert('Password tidak boleh kosong');
+    }
+    elseif (strlen($key) === 0) {
+        showalert('Key tidak valid');
+    }
+    else 
+    {
+        $apiurl = "/records/reset?filter=key,eq,".$key;
+        $data = json_decode(dbapi("read",$apiurl));
+        if(empty($data->records)) {
+          showalert('Key tidak valid');
+        }
+        else
+        {
+          $used = $data->records[0]->used;
+          if ($used !== 0) {
+            showalert('Key tidak valid');
+          }
+          else
+          {
+            $email = $data->records[0]->email;//var_dump($email);
+            $apiurl = "/records/users?filter=email,eq,".$email;
+            $data = json_decode(dbapi("read",$apiurl));
+            if(empty($data->records)) {
+              showalert('Email tidak terdaftar');
+            }
+            else
+            {
+              $password = $data->records[0]->password;
+              $timestamp = date("Y-m-d-H");
+              $validkey = hash('sha512', $post_email.$password.$timestamp);
+              if ($key !== $validkey){showalert('Key kadaluarsa');}
+              else
+              {             
+                  $userid = $data->records[0]->id;
+                  $fields = array(
+                      'password' => password_hash($post_password, PASSWORD_DEFAULT),
+                  );
+                  $payload = json_encode($fields);
+                  $apiurl = "/records/users/".$userid;
+                  $data = dbapi("update",$apiurl,$payload);
+                  if (strlen($data) === 0){showalert('Reset password gagal');}
+                  else
+                  {
+                    showalert('Reset password sukses silahkan masuk dengan password baru');
+                  }
+               }
+            }
+          }
+        }    
+    }
+  }
   if ($action === "logout"){
     $_SESSION['loggedin'] == false;
     session_destroy();
-    showmessage('Anda telah keluar');
+    showalert('Anda telah keluar');
     header('Location: index.php');
     exit;
   }
 }
 
-///////////////////////////////////////request///////////////////////////////////////////////////////////
+///////////////////////////////////////post request///////////////////////////////////////////////////////////
 
 
 
@@ -302,9 +437,37 @@ else
 <h1 class="h3 mb-3 font-weight-normal">Assalamualaikum</h1>
 <a class="loginbutton" href="javascript:"><button class="btn btn-lg btn-primary btn-block">Masuk</button></a>
 <a class="registerbutton" href="javascript:"><button class="btn btn-lg btn-primary btn-block">Daftar</button></a>
+<p class="mt-3"><a class="resetbutton" href="javascript:" class="text-black-50 fw-bold">Lupa password</a></p>
 </div>
 </section>
 <!-- main front -->
+
+<!-- reset form -->
+<section id="resetform" style="display: none;">
+    <form action="" method="post" autocomplete="off" class="form-signin">
+      <h1 class="h3 mb-3 font-weight-normal">Setel ulang password</h1>
+      <label for="inputEmail" class="sr-only">Alamat email</label>
+      <input type="email" id="inputEmail1" class="form-control" name="email" placeholder="Email" autofocus="" required=""></br>
+      <input type="hidden" name="action" value="reset" required="">
+      <button class="btn btn-lg btn-primary btn-block" type="submit">Reset</button>
+      <p class="mt-3"><a class="frontbutton" href="javascript:" class="text-black-50 fw-bold">Kembali</a></p>
+    </form>
+</section>
+<!-- reset form -->
+
+<!-- resetpassword form -->
+<section id="resetpassword" style="display: none;">
+    <form action="index.php" method="post" autocomplete="off" class="form-signin">
+      <h1 class="h3 mb-3 font-weight-normal">Setel ulang password</h1>
+      <label for="inputPassword" class="sr-only">Password baru</label>
+      <input type="password" id="inputPassword1" class="form-control" name="password" placeholder="Password" required=""></br>
+      <input type="hidden" name="action" value="resetpassword" required="">
+      <input type="hidden" id="resetkey" name="key" value="" required="">
+      <button class="btn btn-lg btn-primary btn-block" type="submit">Reset</button>
+      <p class="mt-3"><a class="" href="index.php" class="text-black-50 fw-bold">Kembali</a></p>
+    </form>
+</section>
+<!-- reset form -->
 
 <!-- login form -->
 <section id="loginform" style="display: none;">
@@ -374,10 +537,6 @@ else
 }
 </style>
 <script>
-//document.getElementById("registerbutton").onclick = function() { document.getElementById("loginform").style.display = "none";document.getElementById("registerform").style.display = "inline"; };
-//document.getElementById("loginbutton").onclick = function() { document.getElementById("registerform").style.display = "none";document.getElementById("loginform").style.display = "inline"; };
-
-
 $(document).ready(function() {
   $('.loginbutton').click(function() {
     $('#loginform').slideDown("slow");
@@ -393,10 +552,30 @@ $(document).ready(function() {
     $('#mainfront').slideDown("slow");
     $('#registerform').hide("slow");
     $('#loginform').hide("slow");
+    $('#resetform').hide("slow");
+  });
+  $('.resetbutton').click(function() {
+    $('#resetform').slideDown("slow");
+    $('#mainfront').hide("slow");
+    $('#loginform').hide("slow");
+    $('#registerform').hide("slow");
   });
 });
 </script>
 <?php
+
+  if(isset($_GET['reset'])){
+    $resetkey = isset($_GET['reset'])?$_GET['reset']:false;
+    $key = Input::data($resetkey);
+    echo '
+    <script>
+    document.getElementById("resetkey").value = "'.$key.'";
+    document.getElementById("mainfront").style.display = "none";
+    document.getElementById("resetpassword").style.display = "inline";
+    </script>    
+    ';
+  }
+
 }
 ///////////////////////////////////////front///////////////////////////////////////////////////////////
 
