@@ -132,7 +132,8 @@ function dbapi($method,$apiurl,$payload = ""){
     $context = stream_context_create([
       "http" => [
           "method" => "GET",
-          "header" => "X-API-Key: $apikey\r\n"
+          "header" => "X-API-Key: $apikey\r\n",
+          'timeout' => 10
       ]
     ]);
   }
@@ -143,7 +144,7 @@ function dbapi($method,$apiurl,$payload = ""){
           "header" => "Content-Type: application/json; charset=utf-8\r\n".
             "X-API-Key: $apikey\r\n",
           'content' => $payload,
-          'timeout' => 60
+          'timeout' => 10
       ]
     ]);
   }  
@@ -154,7 +155,7 @@ function dbapi($method,$apiurl,$payload = ""){
           "header" => "Content-Type: application/json; charset=utf-8\r\n".
             "X-API-Key: $apikey\r\n",
           'content' => $payload,
-          'timeout' => 60
+          'timeout' => 10
       ]
     ]);
   }   
@@ -357,7 +358,7 @@ if(isset($_POST['action'])){
     else 
     {
         $apiurl = "/records/reset?filter=key,eq,".$key;
-        $data = json_decode(dbapi("read",$apiurl));$data = json_decode(dbapi("read",$apiurl));
+        $data = json_decode(dbapi("read",$apiurl));
         if(empty($data->records)) {
           showalert('Key tidak ditemukan');
         }
@@ -378,6 +379,7 @@ if(isset($_POST['action'])){
             else
             {
               $password = $data->records[0]->password;
+              $email = $data->records[0]->email;
               $timestamp = date("Y-m-d-H");
               $validkey = hash('sha512', $email.$password.$timestamp);
               if ($key !== $validkey){showalert('Key kadaluarsa');}
