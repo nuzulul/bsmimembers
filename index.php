@@ -247,6 +247,7 @@ if(isset($_POST['action'])){
       }
     }    
   }
+  
   if ($action === "register"){
 
     //validate
@@ -368,7 +369,7 @@ if(isset($_POST['action'])){
           }
           else
           {
-            $email = $data->records[0]->email;//var_dump($email);
+            $email = $data->records[0]->email;
             $apiurl = "/records/users?filter=email,eq,".$email;
             $data = json_decode(dbapi("read",$apiurl));
             if(empty($data->records)) {
@@ -378,7 +379,7 @@ if(isset($_POST['action'])){
             {
               $password = $data->records[0]->password;
               $timestamp = date("Y-m-d-H");
-              $validkey = hash('sha512', $post_email.$password.$timestamp);
+              $validkey = hash('sha512', $email.$password.$timestamp);
               if ($key !== $validkey){showalert('Key kadaluarsa');}
               else
               {             
