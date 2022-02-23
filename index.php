@@ -9,10 +9,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!-- Bootstrap CSS -->
-    <link href="https://wiki.bsmijatim.org/library/bootstrap/bootstrap-5.1.3-dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://wiki.bsmijatim.org/library/bootstrap/bootstrap-icons-1.7.2/bootstrap-icons.css">
+    <link href="https://nuzulul.github.io/app/library/bootstrap/bootstrap-5.1.3-dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://nuzulul.github.io/app/library/bootstrap/bootstrap-icons-1.7.2/bootstrap-icons.css">
     
-    <script src="https://wiki.bsmijatim.org/library/jquery/jquery-3.6.0.min.js"></script>
+    <script src="https://nuzulul.github.io/app/library/jquery/jquery-3.6.0.min.js"></script>
 
     <title>BSMI Members</title>
   </head>
@@ -162,7 +162,7 @@ function dbapi($method,$apiurl,$payload = ""){
   //$dburl='https://bsmi.sourceforge.io/phpcrudapi/api.php'.$apiurl.'?cache='. $now;
   $dburl='https://bsmi.sourceforge.io/phpcrudapi/api.php'.$apiurl;
   $result = @file_get_contents($dburl, false, $context);
-  //if($result === FALSE) { showalert('Error'); }
+  //if($result === FALSE) { showdanger('Error'); }
   return $result;
 }
 ///////////////////////////////////////api///////////////////////////////////////////////////////////
@@ -172,11 +172,28 @@ function dbapi($method,$apiurl,$payload = ""){
 
 ///////////////////////////////////////message///////////////////////////////////////////////////////////
 
-function showalert($data){
+function showdanger($data){
 
 echo '
 <div class="position-relative"><div class="container position-absolute top-0 start-50 translate-middle-x">
 <div class="alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
+  <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Danger:"><use xlink:href="#bi-exclamation-triangle-fill"/></svg>
+  <div>
+    '.$data.'<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  
+</div>
+</div></div>
+';
+
+}
+
+
+function showsuccess($data){
+
+echo '
+<div class="position-relative"><div class="container position-absolute top-0 start-50 translate-middle-x">
+<div class="alert alert-success d-flex align-items-center alert-dismissible fade show" role="alert">
   <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Danger:"><use xlink:href="#bi-exclamation-triangle-fill"/></svg>
   <div>
     '.$data.'<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -215,32 +232,29 @@ if(isset($_POST['action'])){
     Input::check(['email', 'password'], $_POST);
     $post_email = Input::email($_POST['email']);
     $post_password = Input::str($_POST['password']);    
-    if (!$post_email){showalert('Email tidak valid');} 
-    elseif (!$post_password){showalert('Password tidak valid');}
+    if (!$post_email){showdanger('Email tidak valid');} 
+    elseif (!$post_password){showdanger('Password tidak valid');}
     
-    //checks if the username or password fields are empty
     elseif (strlen($post_email) === 0) {
-        showalert('Email tidak boleh kosong');
+        showdanger('Email tidak boleh kosong');
     }
     elseif (strlen($post_password) === 0) {
-        showalert('Password tidak boleh kosong');
+        showdanger('Password tidak boleh kosong');
     }
     else {
       $apiurl = "/records/users?filter=email,eq,".$post_email;
       $data = dbapi("read",$apiurl);$data = json_decode(dbapi("read",$apiurl));
-      //var_dump($data->records);
       if(empty($data->records)) {
-        showalert('Email atau password salah');
+        showdanger('Email belum terdaftar atau gangguan koneksi');
       }
       else
       {
         $password = $data->records[0]->password;
         if (!password_verify($post_password, $password)) {
-          showalert('Email atau password salah');
+          showdanger('Email atau password salah');
         }
         else
         {
-          //if (password_verify($post_password, $password)) {
           $_SESSION['email'] = $post_email;
           $_SESSION['loggedin'] = true;  
         }
@@ -255,22 +269,21 @@ if(isset($_POST['action'])){
     Input::check(['email', 'password'], $_POST);
     $post_email = Input::email($_POST['email']);
     $post_password = Input::str($_POST['password']);    
-    if (!$post_email){showalert('Email tidak valid');} 
-    elseif (!$post_password){showalert('Password tidak valid');}
+    if (!$post_email){showdanger('Email tidak valid');} 
+    elseif (!$post_password){showdanger('Password tidak valid');}
     
-    //checks if the username or password fields are empty
     elseif (strlen($post_email) === 0) {
-        showalert('Email tidak boleh kosong');
+        showdanger('Email tidak boleh kosong');
     }
     elseif (strlen($post_password) === 0) {
-        showalert('Password tidak boleh kosong');
+        showdanger('Password tidak boleh kosong');
     }
     else {
     
       $apiurl = "/records/users?filter=email,eq,".$post_email;
       $data = dbapi("read",$apiurl);$data = json_decode(dbapi("read",$apiurl));
       if(!empty($data->records)) {
-        showalert('Email sudah terdaftar');
+        showdanger('Email sudah terdaftar');
       }
       else
       {
@@ -283,11 +296,11 @@ if(isset($_POST['action'])){
         );
         $payload = json_encode($fields);
         $data = dbapi("create",$apiurl,$payload);
-        if (strlen($data) === 0){showalert('Registrasi gagal');}
-        else{
-          //echo "<p>Register success. Please login.</p>";  
+        if (strlen($data) === 0){showdanger('Registrasi gagal atau gangguan koneksi');}
+        else{ 
           $_SESSION['email'] = $post_email;
-          $_SESSION['loggedin'] = true;          
+          $_SESSION['loggedin'] = true; 
+          showsuccess('Registrasi berhasil');         
         }
       }    
     }  
@@ -296,11 +309,11 @@ if(isset($_POST['action'])){
     //validate
     Input::check(['email'], $_POST);
     $post_email = Input::email($_POST['email']);   
-    if (!$post_email){showalert('Email tidak valid');} 
+    if (!$post_email){showdanger('Email tidak valid');} 
     
     //checks if the email fields are empty
     elseif (strlen($post_email) === 0) {
-        showalert('Email tidak boleh kosong');
+        showdanger('Email tidak boleh kosong');
     }
 
     else {
@@ -308,7 +321,7 @@ if(isset($_POST['action'])){
       $apiurl = "/records/users?filter=email,eq,".$post_email;
       $data = dbapi("read",$apiurl);$data = json_decode(dbapi("read",$apiurl));
       if(empty($data->records)) {
-        showalert('Email tidak terdaftar');
+        showdanger('Email tidak terdaftar atau gangguan koneksi');
       }
       else
       {
@@ -319,7 +332,7 @@ if(isset($_POST['action'])){
         $apiurl = "/records/reset?filter=key,eq,".$key;
         $data = json_decode(dbapi("read",$apiurl));
         if(!empty($data->records)) {
-          showalert('Anda baru saja reset coba reset ulang 1 jam lagi');
+          showdanger('Anda baru saja reset coba reset ulang 1 jam lagi');
         } 
         else
         {      
@@ -332,10 +345,10 @@ if(isset($_POST['action'])){
           );
           $payload = json_encode($fields);
           $data = dbapi("create",$apiurl,$payload);
-          if (strlen($data) === 0){showalert('Reset gagal coba reset ulang 1 jam lagi');}
+          if (strlen($data) === 0){showdanger('Reset gagal coba reset ulang 1 jam lagi');}
           else{
              $reseturl='https://members.bsmijatim.org/index.php?reset='.$key;
-             showalert('Link reset telah dikirim periksa email anda.');         
+             showsuccess('Link reset telah dikirim periksa email anda.');         
           }
         }
       }
@@ -346,27 +359,27 @@ if(isset($_POST['action'])){
     Input::check(['password','key'], $_POST);
     $post_password = Input::str($_POST['password']);
     $key = Input::data($_POST['key']);     
-    if (!$post_password ){showalert('Password tidak valid');} 
-    elseif (!$key ){showalert('Key tidak valid');} 
+    if (!$post_password ){showdanger('Password tidak valid');} 
+    elseif (!$key ){showdanger('Key tidak valid');} 
     
     elseif (strlen($post_password) === 0) {
-        showalert('Password tidak boleh kosong');
+        showdanger('Password tidak boleh kosong');
     }
     elseif (strlen($key) === 0) {
-        showalert('Key kosong');
+        showdanger('Key kosong');
     }
     else 
     {
         $apiurl = "/records/reset?filter=key,eq,".$key;
         $data = json_decode(dbapi("read",$apiurl));
         if(empty($data->records)) {
-          showalert('Key tidak ditemukan');
+          showdanger('Key tidak ditemukan atau gangguan koneksi');
         }
         else
         {
           $used = $data->records[0]->used;
           if ($used !== 0) {
-            showalert('Key sudah pernah digunakan');
+            showdanger('Key sudah pernah digunakan');
           }
           else
           {
@@ -374,7 +387,7 @@ if(isset($_POST['action'])){
             $apiurl = "/records/users?filter=email,eq,".$email;
             $data = json_decode(dbapi("read",$apiurl));
             if(empty($data->records)) {
-              showalert('Email tidak terdaftar');
+              showdanger('Gangguan koneksi');
             }
             else
             {
@@ -382,7 +395,7 @@ if(isset($_POST['action'])){
               $email = $data->records[0]->email;
               $timestamp = date("Y-m-d-H");
               $validkey = hash('sha512', $email.$password.$timestamp);
-              if ($key !== $validkey){showalert('Key kadaluarsa');}
+              if ($key !== $validkey){showdanger('Key sudah kadaluarsa');}
               else
               {             
                   $userid = $data->records[0]->id;
@@ -392,10 +405,10 @@ if(isset($_POST['action'])){
                   $payload = json_encode($fields);
                   $apiurl = "/records/users/".$userid;
                   $data = dbapi("update",$apiurl,$payload);
-                  if (strlen($data) === 0){showalert('Reset password gagal');}
+                  if (strlen($data) === 0){showdanger('Reset password gagal silahkan coba lagi');}
                   else
                   {
-                    showalert('Reset password sukses silahkan masuk dengan password baru');
+                    showsuccess('Reset password sukses silahkan masuk dengan password baru');
                   }
                }
             }
@@ -406,7 +419,7 @@ if(isset($_POST['action'])){
   if ($action === "logout"){
     $_SESSION['loggedin'] == false;
     session_destroy();
-    showalert('Anda telah keluar');
+    showdanger('Anda telah keluar');
     header('Location: index.php');
     exit;
   }
@@ -585,7 +598,7 @@ $(document).ready(function() {
 
 ///////////////////////////////////////footer///////////////////////////////////////////////////////////
 ?>
-<script src="https://wiki.bsmijatim.org/library/bootstrap/bootstrap-5.1.3-dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://nuzulul.github.io/app/library/bootstrap/bootstrap-5.1.3-dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>
 <?php
